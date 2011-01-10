@@ -1,0 +1,7 @@
+## Interface: 40000
+## Author: nesler
+## Version: 1.0
+## Title: nAutoGreed
+## Notes: Auto Greed and DE rolls!
+
+nAutoGreed.lua

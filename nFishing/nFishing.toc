@@ -1,0 +1,7 @@
+## Interface: 40000
+## Author: nesler
+## Version: 1.0
+## Title: nFishing
+## Notes: Right click fishing, auto loot, sound enable
+
+nFishing.lua
