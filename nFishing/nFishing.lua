@@ -107,6 +107,8 @@ a:SetScript("OnEvent",
 			else
 				FishingMode(false)
 			end
+			
+			print(GetCVar("nameplateShowEnemies"))
 		end
 		
 		if event == "UNIT_SPELLCAST_CHANNEL_START" then
