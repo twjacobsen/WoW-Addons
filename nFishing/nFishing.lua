@@ -3,13 +3,17 @@
 local AUTOLOOT = true					--Enable auto-loot when fishing. This disables it when done fishing!
 local FISHINGSET_NAME = "Fishing"		--Name of the EquipmentManager set to use when fishing
 local ENABLE_SOUNDS = true				--Enable all sounds when fishing. Disables sound when done fishing!
+local HIDE_NAMEPLATES = true				--Hide nameplates when fishing and out-of-combat
 
 --[[ Config end ]]
 
+-- Internal states and variables
 local override = false
 local isChanneling = false
 local gearOn = true
+local initialNamePlateState = GetCVar("nameplateShowEnemies")
 
+-- Initialize the fishing button to click when double-right clicking
 local btn = CreateFrame("Button", "FishingButton", UIParent, "SecureActionButtonTemplate")
 btn:SetPoint("LEFT", UIParent, "RIGHT", 10000, 0)
 btn:SetFrameStrata("LOW")
@@ -22,11 +26,13 @@ btn:SetAttribute("item", nil)
 btn:SetAttribute("target-slot", nil)
 btn:Hide()
 
+-- Register some events
 local a = CreateFrame("Frame",nil,Minimap)
 a:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
 a:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
-a:RegisterEvent("ADDON_LOADED")
+a:RegisterEvent("PLAYER_ENTERING_WORLD")
 
+-- Determine wether user clicked twice or not
 local function IsDoubleClick()
 	if a.lastClickTime then
 		local now = GetTime()
@@ -40,6 +46,7 @@ local function IsDoubleClick()
 	return false
 end
 
+-- Click the button to start fishing!
 local function StartFishing(...)
 	local button = select(2, ...)
 	if button == "RightButton" then
@@ -50,6 +57,7 @@ local function StartFishing(...)
 	end
 end
 
+-- Set vars
 local function FishingMode(start)
 	if start then
 		gearOn = true
@@ -58,6 +66,11 @@ local function FishingMode(start)
 		end
 		if AUTOLOOT then
 			SetCVar("autoLootDefault", "1")
+		end
+		if HIDE_NAMEPLATES then
+			SetCVar("nameplateShowEnemies", 0)
+			a:RegisterEvent("PLAYER_REGEN_ENABLED")
+			a:RegisterEvent("PLAYER_REGEN_DISABLED")
 		end
 		WorldFrame:SetScript("OnMouseDown", StartFishing)
 	else
@@ -68,16 +81,23 @@ local function FishingMode(start)
 		if AUTOLOOT then
 			SetCVar("autoLootDefault", "0")
 		end
+		if HIDE_NAMEPLATES then
+			SetCVar("nameplateShowEnemies", initialNamePlateState)
+			a:UnregisterEvent("PLAYER_REGEN_ENABLED")
+			a:UnregisterEvent("PLAYER_REGEN_DISABLED")
+		end
 		WorldFrame:SetScript("OnMouseDown", nil)
 	end
 end
 
+-- Unbind the button override
 local function UnbindOverride()
 	if override and isChanneling then
 		ClearOverrideBindings(btn)
 	end
 end
 
+-- Handle events
 a:SetScript("OnEvent",
 	function(_,event,arg1,arg2)
 		if event == "EQUIPMENT_SWAP_FINISHED" then
@@ -97,7 +117,7 @@ a:SetScript("OnEvent",
 			end
 		end
 		
-		if event == "ADDON_LOADED" and arg1 == "nFishing" then
+		if event == "PLAYER_ENTERING_WORLD" then
 			local itemArray = GetEquipmentSetItemIDs("Fishing") or GetEquipmentSetItemIDs("fishing")
 			for i=1, #itemArray do
 				if itemArray[i] then
@@ -108,11 +128,15 @@ a:SetScript("OnEvent",
 				end
 			end
 
-			if gearOn then
-				FishingMode(true)
-			else
-				FishingMode(false)
-			end
+			FishingMode(gearOn)
+		end
+		
+		if event == "PLAYER_REGEN_ENABLED" then
+			SetCVar("nameplateShowEnemies", 0)
+		end
+		
+		if event == "PLAYER_REGEN_DISABLED" then
+			SetCVar("nameplateShowEnemies", 1)
 		end
 	end
 )
